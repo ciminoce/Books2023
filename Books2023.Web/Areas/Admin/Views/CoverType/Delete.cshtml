@@ -1,0 +1,29 @@
+﻿@using Books2023.Models.Models;
+@model CoverType
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<form method="post" asp-controller="CoverType" asp-action="Delete">
+    <div class="border p-3 mt-4">
+        <div class="row pb-2">
+            <h2 class="text-primary">Delete Cover Type</h2>
+        </div>
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" disabled class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-danger" style="width:200px">
+            <i class="bi bi-floppy"></i> &nbsp;
+
+            Delete
+        </button>
+        <a asp-controller="CoverType" asp-action="Index" style="width:200px" class="btn btn-success">
+            <i class="bi bi-backspace"></i>  &nbsp;
+            Back to List
+        </a>
+
+    </div>
+</form>

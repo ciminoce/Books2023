@@ -1,0 +1,40 @@
+﻿@model IEnumerable<Company>
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <h2>Company List</h2>
+
+        </div>
+        <div class="col-6 text-end">
+            <a asp-controller="Company" asp-action="UpSert" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> &nbsp;
+                New Company
+            </a>
+        </div>
+    </div>
+    <table id="tblCompanies" class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>ZipCode</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+</div>
+@section Scripts{
+    <script src="~/js/company.js"></script>
+}
+
+

@@ -1,0 +1,28 @@
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-lg-3 col-md-6">
+            <div class="row p-2">
+                <div class="col-12 p-1" style="border:1px solid; border-radius:3px;">
+                    <div class="card">
+                        <img src="@item.ImageUrl" width="200px" height="400px" class="card-img-top rounded" />
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">@item.Title</h5>
+                            <p class="card-text text-info">@item.Author.</p>
+                            <p class="card-text text-secondary">List Price:<strike><b>$@(item.ListPrice.ToString("0.00"))</b></strike></p>
+                            <p class="card-text text-secondary">As Low As:<b>$@(item.Price100.ToString("0.00"))</b></p>
+                        </div>
+
+                    </div>
+                    <div>
+                        <a asp-action="Details" class="btn btn-secondary form-control" asp-route-id="@item.Id">
+                            Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    }
+
+</div>
