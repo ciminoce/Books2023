@@ -42,9 +42,14 @@ namespace Books2023.DataLayer.Repository
             return query.FirstOrDefault();
         }
 
-        public IEnumerable<T> GetAll(string? propertiesNames = null)
+        public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter=null, string? propertiesNames = null)
         {
             IQueryable<T> query = _dbSet;
+            if (filter != null)
+            {
+                query = query.Where(filter);
+
+            }
             if (propertiesNames!=null)
             {
                 var properties = propertiesNames.Split(',', StringSplitOptions.RemoveEmptyEntries);

@@ -14,7 +14,7 @@ namespace Books2023.Models.Models
         public string? State { get; set; }
         public string? ZipCode { get; set; }
 
-        public int CompanyId { get; set; }
+        public int? CompanyId { get; set; }
         [ForeignKey("CompanyId")]
         [ValidateNever]
         public Company Company { get; set; }
