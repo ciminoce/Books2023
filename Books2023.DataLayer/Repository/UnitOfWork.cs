@@ -16,6 +16,8 @@ namespace Books2023.DataLayer.Repository
             Companies = new CompanyRepository(_db);
             ApplicationUsers=new ApplicationUserRepository(_db);
             ShoppingCarts=new ShoppingCartRepository(_db);
+            OrderHeaders = new OrderHeaderRepository(_db);
+            OrderDetails = new OrderDetailRepository(_db);
         }
 
         public ICategoryRepository Categories { get; private set; }
@@ -30,7 +32,11 @@ namespace Books2023.DataLayer.Repository
 
         public IShoppingCartRepository ShoppingCarts {get;private set; }
 
-        public void Save()
+		public IOrderHeaderRepository OrderHeaders { get; private set; }
+
+		public IOrderDetailRepository OrderDetails { get; private set; }
+
+		public void Save()
         {
            _db.SaveChanges();
         }

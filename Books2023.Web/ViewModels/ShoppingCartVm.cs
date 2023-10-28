@@ -5,5 +5,6 @@ namespace Books2023.Web.ViewModels
     public class ShoppingCartVm
     {
         public IEnumerable<ShoppingCart> CartList { get; set; }
+        public OrderHeader OrderHeader { get; set; }
     }
 }

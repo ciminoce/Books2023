@@ -20,7 +20,7 @@
 			<div class="card-body">
 				@foreach (var item in Model.CartList)
 				{
-					<div class="row">
+					<div class="row" id="@item.Id">
 						<div class="d-none d-lg-block col-lg-1 text-center py-2">
 							<img src="@item.Product.ImageUrl" class="rounded" width="100%" />
 						</div>
@@ -32,7 +32,7 @@
 							<div class="col-4 text-md-right pt-4">
 								<h6>
 									<strong>
-										@item.Product.Price.ToString("C")
+										@item.Price.ToString("C")
 										<span class="text-muted">&nbsp;x&nbsp;</span>@item.Quantity
 									</strong>
 								</h6>
@@ -48,11 +48,18 @@
 								</div>
 
 							</div>
-							<div class="col-2 col-sm-4 col-lg-2 text-right pt-2">
-								<a class="btn btn-danger">
+@* 							<div class="col-2 col-sm-4 col-lg-2 text-right pt-2">
+								<a asp-area="Customer" asp-controller="Cart" asp-action="RemoveFromCart" asp-route-cartId="@item.Id" class="btn btn-danger">
 									<i class="bi bi-trash-fill"></i>
 								</a>
 							</div>
+ *@
+							<div class="col-2 col-sm-4 col-lg-2 text-right pt-2">
+								<a onclick="Delete('/Customer/Cart/Delete/@item.Id',@item.Id)" class="btn btn-danger">
+									<i class="bi bi-trash-fill"></i>
+								</a>
+							</div>
+
 						</div>
 					</div>
 					
@@ -64,7 +71,7 @@
 						<ul class="list-group">
 							<li class="list-group-item d-flex justify-content-between bg-light">
 								<span class="text-info"> Total (USD)</span>
-								<strong class="text-info">OrderTotal</strong>
+								<strong id="totalCart" class="text-info">@Model.OrderHeader.OrderTotal.ToString("C")</strong>
 							</li>
 						</ul>
 					</div>
@@ -75,10 +82,56 @@
 			<div class="card-footer">
 				<div class="card-footer row">
 					<div class="col-sm-12 col-lg-4 col-md-6 offset-lg-8 offset-md-6 ">
-						<a class="btn btn-success form-control">Summary</a>
+						<a asp-area="Customer" asp-controller="Cart" asp-action="Summary" class="btn btn-success form-control">Summary</a>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </form>
+@section Scripts{
+	<script>
+		function Delete(url, rowId) {
+			console.log(url, rowId);
+			Swal.fire({
+				title: 'Are you sure?',
+				text: "You won't be able to revert this!",
+				icon: 'warning',
+				showCancelButton: true,
+				confirmButtonColor: '#3085d6',
+				cancelButtonColor: '#d33',
+				confirmButtonText: 'Yes, delete it!'
+			}).then((result) => {
+				if (result.isConfirmed) {
+					$.ajax({
+						"url": url,
+						"type": 'DELETE',
+						"success": function (data) {
+							console.log(data);
+							debugger;
+							if (data.success) {
+								var row = $('#' + rowId);
+								row.remove();
+								$.ajax({
+									url: '/Customer/Cart/GetTotal',
+									type: 'POST',
+									success: function (totalData) {
+										$('#totalCart').text(totalData.total.toFixed(2));
+										toastr.success(data.message);
+									},
+									error: function () {
+										toastr.error('An error occurred while updating the total.');
+									}
+								});
+							}
+							else {
+								toastr.error(data.message);
+							}
+						}
+
+					});
+				}
+			})
+		};
+	</script>
+}
