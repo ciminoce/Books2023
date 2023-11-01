@@ -11,5 +11,8 @@
         IOrderHeaderRepository OrderHeaders { get; }
         IOrderDetailRepository OrderDetails { get; }
         void Save();
+        void BeginTransaction();
+        void CommitTransaction();
+        void RollbackTransaction();
     }
 }

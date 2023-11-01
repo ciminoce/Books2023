@@ -61,5 +61,10 @@ namespace Books2023.DataLayer.Repository
             return query.ToList();
 
         }
-    }
+
+		public void RemoveRange(IEnumerable<T> entities)
+		{
+            _dbSet.RemoveRange(entities);
+		}
+	}
 }

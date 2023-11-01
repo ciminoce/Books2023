@@ -36,6 +36,21 @@ namespace Books2023.DataLayer.Repository
 
 		public IOrderDetailRepository OrderDetails { get; private set; }
 
+		public void BeginTransaction()
+		{
+            _db.Database.BeginTransaction();
+		}
+
+		public void CommitTransaction()
+		{
+            _db.Database.CommitTransaction();
+		}
+
+		public void RollbackTransaction()
+		{
+            _db.Database.RollbackTransaction();
+		}
+
 		public void Save()
         {
            _db.SaveChanges();

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Books2023.Utilities;
+using Stripe;
 
 namespace Books2023.Web
 {
@@ -21,13 +22,23 @@ namespace Books2023.Web
                 .UseSqlServer(builder.Configuration
                 .GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+			builder.Services.Configure<StripeSettings>(
+	                builder.Configuration.GetSection("StripeSettings"));
+
+			builder.Services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddDefaultTokenProviders()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddSingleton<IEmailSender, EmailSender>();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/Identity/Account/Login";
+                options.LogoutPath = "/Identity/Account/Logout";
+                options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+            });
 
             builder.Services.AddRazorPages();
             var app = builder.Build();
@@ -44,8 +55,11 @@ namespace Books2023.Web
             app.UseStaticFiles();
 
             app.UseRouting();
+			StripeConfiguration.ApiKey = builder.
+                Configuration.GetSection("StripeSettings:SecretKey").Get<string>();
 
-            app.UseAuthentication();
+
+			app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapRazorPages();

@@ -6,5 +6,7 @@ namespace Books2023.DataLayer.Repository.Interfaces
     {
         void Update(OrderHeader orderHeader);
 
-    }
+		void UpdateStatus(int orderId, string orderStatus, string? paymentStatus = null);
+		void UpdateStripePaymentId(int orderId, string seccionId, string paymentIntentId);
+	}
 }
