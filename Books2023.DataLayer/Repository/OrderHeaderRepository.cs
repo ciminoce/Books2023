@@ -37,6 +37,7 @@ namespace Books2023.DataLayer.Repository
 			var orderFromDb = _db.OrderHeaders.FirstOrDefault(o => o.Id == orderId);
 			if (orderFromDb!=null)
 			{
+				orderFromDb.PaymentDate = DateTime.Now;
 				orderFromDb.SessionId = seccionId;
 				orderFromDb.PaymentIntentId = paymentIntentId;
 			}

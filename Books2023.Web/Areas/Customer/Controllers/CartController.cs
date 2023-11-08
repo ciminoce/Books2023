@@ -29,8 +29,8 @@ namespace Books2023.Web.Areas.Customer.Controllers
 			{
 				CartList = _unitOfWork.ShoppingCarts
 				.GetAll(c => c.ApplicationUserId == userId.Value, propertiesNames: "Product"),
-				OrderHeader=new()
-			
+				OrderHeader = new()
+
 			};
 
 			foreach (var itemCart in shoppingCartVm.CartList)
@@ -54,7 +54,7 @@ namespace Books2023.Web.Areas.Customer.Controllers
 			{
 				CartList = _unitOfWork.ShoppingCarts
 				.GetAll(c => c.ApplicationUserId == userId.Value, propertiesNames: "Product"),
-				OrderHeader=new()
+				OrderHeader = new()
 			};
 			shoppingCartVm.OrderHeader.ApplicationUser = _unitOfWork.ApplicationUsers.Get(u => u.Id == userId.Value);
 
@@ -89,10 +89,23 @@ namespace Books2023.Web.Areas.Customer.Controllers
 			shoppingCartVm.CartList = _unitOfWork.ShoppingCarts
 				.GetAll(c => c.ApplicationUserId == userId.Value, propertiesNames: "Product");
 
-			shoppingCartVm.OrderHeader.PaymentStatus = WC.PaymentStatusPending;
-			shoppingCartVm.OrderHeader.OrderStatus = WC.StatusPending;
 			shoppingCartVm.OrderHeader.OrderDate = DateTime.Now;
 			shoppingCartVm.OrderHeader.ApplicationUserId = userId.Value;
+
+
+			ApplicationUser appUser = _unitOfWork.ApplicationUsers.Get(u => u.Id == userId.Value);
+			if (appUser.CompanyId.GetValueOrDefault() == 0)
+			{
+				shoppingCartVm.OrderHeader.PaymentStatus = WC.PaymentStatusPending;
+				shoppingCartVm.OrderHeader.OrderStatus = WC.StatusPending;
+
+			}
+			else
+			{
+				shoppingCartVm.OrderHeader.PaymentStatus = WC.PaymentStatusDelayedPayment;
+				shoppingCartVm.OrderHeader.OrderStatus = WC.StatusApproved;
+
+			}
 
 			foreach (var itemCart in shoppingCartVm.CartList)
 			{
@@ -121,63 +134,75 @@ namespace Books2023.Web.Areas.Customer.Controllers
 				}
 				_unitOfWork.Save();
 
-
-				var domain = "https://localhost:7018/";
-				var options = new SessionCreateOptions
+				if (appUser.CompanyId.GetValueOrDefault() == 0)
 				{
-					LineItems = new List<SessionLineItemOptions>(),
-					Mode = "payment",
-					SuccessUrl = domain + $"Customer/Cart/OrderConfirmation?id={shoppingCartVm.OrderHeader.Id}",
-					CancelUrl = domain + "Customer/Cart/Index",
-				};
 
-				foreach (var item in shoppingCartVm.CartList)
-				{
-					var sessionLine = new SessionLineItemOptions
+					var domain = "https://localhost:7018/";
+					var options = new SessionCreateOptions
 					{
-						PriceData = new SessionLineItemPriceDataOptions
-						{
-							UnitAmount = (long)item.Price * 100,
-							Currency = "usd",
-							ProductData = new SessionLineItemPriceDataProductDataOptions
-							{
-								Name = item.Product.Title
-							},
-
-						},
-						Quantity = item.Quantity,
+						LineItems = new List<SessionLineItemOptions>(),
+						Mode = "payment",
+						SuccessUrl = domain + $"Customer/Cart/OrderConfirmation?id={shoppingCartVm.OrderHeader.Id}",
+						CancelUrl = domain + "Customer/Cart/Index",
 					};
-					options.LineItems.Add(sessionLine);
+
+					foreach (var item in shoppingCartVm.CartList)
+					{
+						var sessionLine = new SessionLineItemOptions
+						{
+							PriceData = new SessionLineItemPriceDataOptions
+							{
+								UnitAmount = (long)item.Price * 100,
+								Currency = "usd",
+								ProductData = new SessionLineItemPriceDataProductDataOptions
+								{
+									Name = item.Product.Title
+								},
+
+							},
+							Quantity = item.Quantity,
+						};
+						options.LineItems.Add(sessionLine);
+
+					}
+
+
+					var service = new SessionService();
+					Session session = service.Create(options);
+
+					//Guardar SessionId y PaymentIntentId
+					shoppingCartVm.OrderHeader.SessionId = session.Id;
+					shoppingCartVm.OrderHeader.PaymentIntentId = session.PaymentIntentId;
+
+					_unitOfWork.OrderHeaders.UpdateStripePaymentId(shoppingCartVm.OrderHeader.Id,
+						shoppingCartVm.OrderHeader.SessionId, shoppingCartVm.OrderHeader.PaymentIntentId);
+					_unitOfWork.Save();
+
+					_unitOfWork.ShoppingCarts.RemoveRange(shoppingCartVm.CartList);
+					_unitOfWork.Save();
+
+					_unitOfWork.CommitTransaction();
+
+					Response.Headers.Add("Location", session.Url);
+					return new StatusCodeResult(303);
+				}
+				else
+				{
+					_unitOfWork.ShoppingCarts.RemoveRange(shoppingCartVm.CartList);
+					_unitOfWork.Save();
+
+					_unitOfWork.CommitTransaction();
+					return RedirectToAction("OrderConfirmation", "Cart",
+						new { id = shoppingCartVm.OrderHeader.Id });
 
 				}
-
-
-				var service = new SessionService();
-				Session session = service.Create(options);
-
-				//Guardar SessionId y PaymentIntentId
-				shoppingCartVm.OrderHeader.SessionId = session.Id;
-				shoppingCartVm.OrderHeader.PaymentIntentId = session.PaymentIntentId;
-
-				_unitOfWork.OrderHeaders.UpdateStripePaymentId(shoppingCartVm.OrderHeader.Id,
-					shoppingCartVm.OrderHeader.SessionId, shoppingCartVm.OrderHeader.PaymentIntentId);
-				_unitOfWork.Save();
-
-				_unitOfWork.ShoppingCarts.RemoveRange(shoppingCartVm.CartList);
-				_unitOfWork.Save();
-
-				_unitOfWork.CommitTransaction();
-
-				Response.Headers.Add("Location", session.Url);
-				return new StatusCodeResult(303);
-
 
 			}
 			catch (Exception)
 			{
 				_unitOfWork.RollbackTransaction();
 				return View("Index");
-				
+
 			}
 
 		}
@@ -186,28 +211,39 @@ namespace Books2023.Web.Areas.Customer.Controllers
 			//Obtenemos la orden
 			var orderHeader = _unitOfWork.OrderHeaders.Get(o => o.Id == id);
 			//Obtengo la session de Stripe
-			var service = new SessionService();
-			Session session = service.Get(orderHeader.SessionId);
-			//Checko el estado del pago
-			if (session.PaymentStatus.ToLower() == "paid")
+			if (orderHeader.PaymentStatus != WC.PaymentStatusDelayedPayment)
 			{
-				_unitOfWork.OrderHeaders.UpdateStatus(orderHeader.Id,
-					orderHeader.OrderStatus = WC.StatusApproved,
-					orderHeader.PaymentStatus = WC.StatusApproved);
-				_unitOfWork.Save();
-			}
+				var service = new SessionService();
+				Session session = service.Get(orderHeader.SessionId);
 
+
+				_unitOfWork.OrderHeaders.UpdateStripePaymentId(orderHeader.Id,
+					orderHeader.SessionId, orderHeader.PaymentIntentId);
+				_unitOfWork.Save();
+
+				//Checko el estado del pago
+				if (session.PaymentStatus.ToLower() == "paid")
+				{
+					_unitOfWork.OrderHeaders.UpdateStatus(orderHeader.Id,
+						orderHeader.OrderStatus = WC.StatusApproved,
+						orderHeader.PaymentStatus = WC.StatusApproved);
+					_unitOfWork.Save();
+				}
+
+			}
 			return View(id);
+
 
 
 		}
 
 		private double GetPriceBasedOnQuantity(int quantity, double price, double price50, double price100)
 		{
-			if (quantity<=50)
+			if (quantity <= 50)
 			{
 				return price;
-			}else if (quantity <= 100)
+			}
+			else if (quantity <= 100)
 			{
 				return price50;
 			}
@@ -280,7 +316,7 @@ namespace Books2023.Web.Areas.Customer.Controllers
 			var shoppingCartVm = new ShoppingCartVm
 			{
 				CartList = _unitOfWork.ShoppingCarts
-				.GetAll(s => s.ApplicationUserId == claims.Value,propertiesNames:"Product")
+				.GetAll(s => s.ApplicationUserId == claims.Value, propertiesNames: "Product")
 			};
 			foreach (var item in shoppingCartVm.CartList)
 			{
